@@ -1,0 +1,1 @@
+const fileList = ["BLACKPINK-algo1","BLACKPINK-final","BTS-algo1","BTS-final","sidewalk-algo1","sidewalk-final"];

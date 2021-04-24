@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Visualizer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="./list.js"></script>
+  <style type="text/css">
+    *{font-family: consolas!important;}
+    body{margin: 0;}
+    button{border: 2px solid rgb(118 196 136);border-radius: 8px;user-select: none;display: inline-block;padding: 8px 16px;vertical-align: middle;overflow: hidden;text-decoration: none;text-align: center;cursor: pointer;white-space: nowrap;background-color: white;margin: 0 5px;}
+    button:hover{background-color: #f1f1f1!important;}
+    .mid-mid{position: absolute;left: 50%;top: 50%;transform: translate(-50%,-50%);width: 100%;}
+    #video{border: 1px solid black;display: none;}
+    .fileItem{margin: 5px;}
+    #fileList{display: inline-flex;flex-direction: column;padding: 10px 25px;border: 2px solid rgb(109 171 252);border-radius: 8px;}
+    *:focus{outline: none;}
+  </style>
+</head>
+<body>
+  <div class="mid-mid"><center>
+    <div id="fileList">
+      <p>Choose file:</p>
+    </div>
+    <video id="video" controls></video>
+  </center></div>
+  <script type="text/javascript">
+    const video = document.getElementById('video');
+    const html = document.getElementsByTagName('html')[0];
+    const fileListElement = document.getElementById('fileList');
+    fileListElement.innerHTML += fileList.map(file=>(
+      `<button class="fileItem" onclick="activate('${file}')">${file}</button>`
+    )).join('');
+    function activate(file){
+      document.title = file;
+      fileListElement.style.display = 'none';
+      const script = document.createElement('script');
+      document.body.appendChild(script);
+      script.onload = init;
+      script.src = './' + file + '.js';
+    }
+    var ctx;
+    function init(){
+      const rand = Array(1000).fill(0).map(Math.random).map(n=>parseInt(n * 16777215).toString(16).toUpperCase()).map(c=>'#' + '0'.repeat(6 - c.length) + c);
+      video.src = '../video-'+ data.name + '.mp4';
+      video.style.display = 'block';
+      data.pose = data.pose.map(frame=>frame.map(p=>p.map(c=>c.map(n=>n === null ? NaN : n))));
+      const id = data.pose.map(frame=>frame.map(p=>[]));
+      data.pred_id.forEach(([ID, t, idx])=>{
+        id[t][idx] = ID;
+      });
+      function centroid(p){
+        const xmin = Math.min(...p.map(e=>e[0]).filter(e=>!isNaN(e)));
+        const xmax = Math.max(...p.map(e=>e[0]).filter(e=>!isNaN(e)));
+        const ymin = Math.min(...p.map(e=>e[1]).filter(e=>!isNaN(e)));
+        const ymax = Math.max(...p.map(e=>e[1]).filter(e=>!isNaN(e)));
+        return [(xmin + xmax) / 2, (ymin + ymax) / 2];
+      }
+      const canvas = document.createElement('canvas');
+      ctx = canvas.getContext('2d');
+      ctx.fillStyle = 'cyan';
+      const font = `${Math.min(data.width, data.height) * 0.1}px serif`;
+      ctx.font = font;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      document.body.appendChild(canvas);
+      canvas.style.position = 'absolute';
+      canvas.style.pointerEvents = 'none';
+      function show(t){
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if(t < 0 || t >= id.length) return;
+        for(var i = 0;i < id[t].length;i++){
+          var [x, y] = centroid(data.pose[t][i]);
+          if(isNaN(x) || isNaN(y)) continue;
+          ctx.fillStyle = rand[id[t][i]];
+          ctx.font = font;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(id[t][i].toString(), x, y);
+        }
+        ctx.fillStyle = 'red';
+        ctx.font = '40px consolas';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText(`frame: ${t}`, 20, 20);
+      }
+      var current = 0, figure = '';
+      const frame = ()=>{
+        const bbx = video.getBoundingClientRect(), bbx0 = html.getBoundingClientRect();
+        const style = getComputedStyle(video);
+        const pl = parseInt(style.getPropertyValue('padding-left').slice(0, -2));
+        const pr = parseInt(style.getPropertyValue('padding-right').slice(0, -2));
+        const pt = parseInt(style.getPropertyValue('padding-top').slice(0, -2));
+        const pb = parseInt(style.getPropertyValue('padding-bottom').slice(0, -2));
+        const bl = parseInt(style.getPropertyValue('border-left-width').slice(0, -2));
+        const br = parseInt(style.getPropertyValue('border-right-width').slice(0, -2));
+        const bt = parseInt(style.getPropertyValue('border-top-width').slice(0, -2));
+        const bb = parseInt(style.getPropertyValue('border-bottom-width').slice(0, -2));
+        var val = [bbx.left - bbx0.left + pl + bl + 'px', bbx.top - bbx0.top + pt + bt + 'px', video.videoWidth, video.videoHeight];
+        if(figure != val.join(' ')){
+          [canvas.style.left, canvas.style.top, canvas.width, canvas.height] = val;
+          figure = val.join(' ');
+        }
+        var idx = parseInt(video.currentTime * data.fps);
+        if(idx != current) show(current = idx);
+        requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    }
+    ///////////////////////// url handling
+    var hash = window.location.hash;
+    if(fileList.map(e=>'#'+e).includes(hash)) activate(hash.slice(1));
+    else window.location.hash = "";
+  </script>
+</body>
+</html>
