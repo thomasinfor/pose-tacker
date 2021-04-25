@@ -12,8 +12,9 @@
     .mid-mid{position: absolute;left: 50%;top: 50%;transform: translate(-50%,-50%);width: 100%;}
     #video{border: 1px solid black;display: none;}
     .fileItem{margin: 5px;}
-    #fileList{display: inline-flex;flex-direction: column;padding: 10px 25px;border: 2px solid rgb(109 171 252);border-radius: 8px;}
+    #fileList{display: inline-block;padding: 10px 25px;border: 2px solid rgb(109 171 252);border-radius: 8px;}
     *:focus{outline: none;}
+    .fileList-column{display: inline-flex;flex-direction: column;}
   </style>
 </head>
 <body>
@@ -27,8 +28,12 @@
     const video = document.getElementById('video');
     const html = document.getElementsByTagName('html')[0];
     const fileListElement = document.getElementById('fileList');
-    fileListElement.innerHTML += fileList.map(file=>(
-      `<button class="fileItem" onclick="activate('${file}')">${file}</button>`
+    fileListElement.innerHTML += fileList.map(f=>f.split('-')[0]).filter(
+      (v, i, arr)=>arr.indexOf(v) == i
+    ).map(name=>(
+      '<div class="fileList-column">' + fileList.filter(f=>f.split('-')[0] == name).map(f=>(
+        `<button class="fileItem" onclick="activate('${f}')">${f}</button>`
+      )).join('') + '</div>'
     )).join('');
     function activate(file){
       document.title = file;
